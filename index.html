@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact List App</title>
+    <style>
+        .app {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .contact-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .contact-card img {
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            background-color: #ccc;
+        }
+        .contact-card div {
+            flex: 1;
+            text-align: left;
+            margin-left: 10px;
+        }
+        .contact-card button {
+            margin-left: 10px;
+        }
+        form input {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: calc(100% - 40px);
+        }
+        form button {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone/babel.min.js"></script>
+    <script type="text/babel">
+        const { createContext, useState, useContext, useEffect } = React;
+
+        const ContactContext = createContext();
+
+        const ContactProvider = ({ children }) => {
+            const [contacts, setContacts] = useState([]);
+
+            const addContact = (contact) => {
+                setContacts([...contacts, { ...contact, id: Date.now() }]);
+            };
+
+            const updateContact = (updatedContact) => {
+                setContacts(contacts.map(contact => 
+                    contact.id === updatedContact.id ? updatedContact : contact
+                ));
+            };
+
+            const deleteContact = (id) => {
+                setContacts(contacts.filter(contact => contact.id !== id));
+            };
+
+            return (
+                <ContactContext.Provider value={{ contacts, addContact, updateContact, deleteContact }}>
+                    {children}
+                </ContactContext.Provider>
+            );
+        };
+
+        const ContactList = ({ onEdit }) => {
+            const { contacts, deleteContact } = useContext(ContactContext);
+
+            return (
+                <div>
+                    {contacts.map(contact => (
+                        <div key={contact.id} className="contact-card">
+                            <img src="https://via.placeholder.com/50?text=Img" alt="Profile" />
+                            <div>
+                                <h2>{contact.name}</h2>
+                                <p>{contact.address}</p>
+                                <p>{contact.phone}</p>
+                                <p>{contact.email}</p>
+                            </div>
+                            <button onClick={() => onEdit(contact)}>Edit</button>
+                            <button onClick={() => deleteContact(contact.id)}>Delete</button>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const ContactForm = ({ contactToEdit, onEditComplete }) => {
+            const { addContact, updateContact } = useContext(ContactContext);
+            const [contact, setContact] = useState({ name: '', email: '', phone: '', address: '' });
+
+            useEffect(() => {
+                if (contactToEdit) {
+                    setContact(contactToEdit);
+                }
+            }, [contactToEdit]);
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setContact({ ...contact, [name]: value });
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (contact.id) {
+                    updateContact(contact);
+                } else {
+                    addContact(contact);
+                }
+                setContact({ name: '', email: '', phone: '', address: '' });
+                onEditComplete();
+            };
+
+            return (
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        name="name"
+                        value={contact.name}
+                        onChange={handleChange}
+                        placeholder="Full Name"
+                    />
+                    <input
+                        type="email"
+                        name="email"
+                        value={contact.email}
+                        onChange={handleChange}
+                        placeholder="Email"
+                    />
+                    <input
+                        type="tel"
+                        name="phone"
+                        value={contact.phone}
+                        onChange={handleChange}
+                        placeholder="Phone"
+                    />
+                    <input
+                        type="text"
+                        name="address"
+                        value={contact.address}
+                        onChange={handleChange}
+                        placeholder="Address"
+                    />
+                    <button type="submit">Save</button>
+                </form>
+            );
+        };
+
+        const App = () => {
+            const [contactToEdit, setContactToEdit] = useState(null);
+
+            const handleEditContact = (contact) => {
+                setContactToEdit(contact);
+            };
+
+            const handleEditComplete = () => {
+                setContactToEdit(null);
+            };
+
+            return (
+                <ContactProvider>
+                    <div className="app">
+                        <h1>Contact List</h1>
+                        <ContactForm contactToEdit={contactToEdit} onEditComplete={handleEditComplete} />
+                        <ContactList onEdit={handleEditContact} />
+                    </div>
+                </ContactProvider>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
